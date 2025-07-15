@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Image generation service using Azure OpenAI DALL-E
+Image generation service using Azure OpenAI DALL-E with Azure Blob Storage
 """
 
 import os
@@ -12,35 +12,71 @@ from PIL import Image
 from io import BytesIO
 from typing import Optional, Tuple
 
+from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient
+
 from config import (
     AZURE_OPENAI_ENDPOINT, AZURE_DEPLOYMENT_NAME, 
     AZURE_API_VERSION, AZURE_SUBSCRIPTION_KEY,
-    IMAGE_STYLE_TEMPLATES
+    IMAGE_STYLE_TEMPLATES, AZURE_STORAGE_CONNECTION_STRING,
+    AZURE_CONTAINER_NAME, AZURE_BLOB_FOLDER
 )
 
 
 class QuoteImageGenerator:
-    """Azure OpenAI DALL-E image generator for quotes"""
+    """Azure OpenAI DALL-E image generator for quotes with Azure Blob Storage"""
     
     def __init__(self):
         self.endpoint = AZURE_OPENAI_ENDPOINT
         self.deployment = AZURE_DEPLOYMENT_NAME
         self.api_version = AZURE_API_VERSION
         self.subscription_key = AZURE_SUBSCRIPTION_KEY
-        self.images_dir = "generated_images"
         
-        # Create images directory if it doesn't exist
-        os.makedirs(self.images_dir, exist_ok=True)
+        # Azure Blob Storage setup
+        self.connection_string = AZURE_STORAGE_CONNECTION_STRING
+        self.container_name = AZURE_CONTAINER_NAME
+        self.blob_folder = AZURE_BLOB_FOLDER
         
-    def _decode_and_save_image(self, b64_data: str, filename: str) -> str:
-        """Decode base64 image data and save to file"""
+        # Initialize blob service client
+        self.blob_service_client = BlobServiceClient.from_connection_string(self.connection_string)
+        self.container_client = self.blob_service_client.get_container_client(self.container_name)
+        
+        # Ensure container exists (it should already exist)
+        try:
+            self.container_client.get_container_properties()
+        except Exception:
+            # Container doesn't exist, but we won't create it since it's managed by Azure ML
+            pass
+        
+    def _upload_image_to_blob(self, image_data: bytes, filename: str) -> str:
+        """Upload image data to Azure Blob Storage"""
+        try:
+            # Create blob path with folder
+            blob_path = f"{self.blob_folder}/{filename}"
+            
+            # Upload the image
+            blob_client = self.container_client.get_blob_client(blob_path)
+            blob_client.upload_blob(image_data, overwrite=True)
+            
+            # Return the blob URL
+            blob_url = f"https://{self.blob_service_client.account_name}.blob.core.windows.net/{self.container_name}/{blob_path}"
+            return blob_url
+            
+        except Exception as e:
+            raise Exception(f"Failed to upload image to blob storage: {str(e)}")
+    
+    def _decode_image_to_bytes(self, b64_data: str) -> bytes:
+        """Decode base64 image data to bytes"""
         try:
             image = Image.open(BytesIO(base64.b64decode(b64_data)))
-            filepath = os.path.join(self.images_dir, filename)
-            image.save(filepath)
-            return filepath
+            
+            # Convert to bytes
+            img_byte_arr = BytesIO()
+            image.save(img_byte_arr, format='JPEG', quality=90)
+            img_byte_arr.seek(0)
+            
+            return img_byte_arr.getvalue()
         except Exception as e:
-            raise Exception(f"Failed to decode and save image: {str(e)}")
+            raise Exception(f"Failed to decode image: {str(e)}")
     
     def _build_image_prompt(self, quote_text: str, style: str = "paper") -> str:
         """Build the image generation prompt based on style"""
@@ -49,14 +85,14 @@ class QuoteImageGenerator:
     
     def generate_quote_image(self, quote_text: str, style: str = "paper") -> Tuple[str, str]:
         """
-        Generate an image for the given quote
+        Generate an image for the given quote and upload to Azure Blob Storage
         
         Args:
-            quote_text: The complete quote text (title + content)
+            quote_text: The complete quote text (content only, no title)
             style: Image style (paper, modern, minimal)
             
         Returns:
-            Tuple of (image_filename, image_filepath)
+            Tuple of (image_filename, blob_url)
         """
         try:
             # Build the custom prompt
@@ -111,10 +147,13 @@ class QuoteImageGenerator:
             unique_id = str(uuid.uuid4())[:8]
             filename = f"quote_image_{timestamp}_{unique_id}.jpeg"
             
-            # Save image
-            filepath = self._decode_and_save_image(image_data['b64_json'], filename)
+            # Convert image to bytes
+            image_bytes = self._decode_image_to_bytes(image_data['b64_json'])
             
-            return filename, filepath
+            # Upload to Azure Blob Storage
+            blob_url = self._upload_image_to_blob(image_bytes, filename)
+            
+            return filename, blob_url
             
         except Exception as e:
             raise Exception(f"Image generation failed: {str(e)}")
@@ -124,10 +163,10 @@ class QuoteImageGenerator:
         Safe version of generate_quote_image that returns error instead of raising
         
         Returns:
-            Tuple of (filename, filepath, error_message)
+            Tuple of (filename, blob_url, error_message)
         """
         try:
-            filename, filepath = self.generate_quote_image(quote_text, style)
-            return filename, filepath, None
+            filename, blob_url = self.generate_quote_image(quote_text, style)
+            return filename, blob_url, None
         except Exception as e:
             return None, None, str(e)

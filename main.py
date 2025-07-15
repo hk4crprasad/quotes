@@ -4,12 +4,11 @@ Gen Z Quote Generator - Simplified API with modular architecture
 """
 
 from fastapi import FastAPI, Depends
-from fastapi.responses import FileResponse
 from fastapi_mcp import FastApiMCP
 import uvicorn
 import os
 
-from models import QuoteRequest, QuoteResponse, QuoteImageRequest, QuoteImageResponse
+from models import QuoteRequest, QuoteResponse
 from quote_generator import ViralQuoteGenerator
 
 
@@ -33,90 +32,48 @@ def get_generator() -> ViralQuoteGenerator:
 
 @app.post("/generate", 
          operation_id="generate_viral_quote",
-         summary="Generate viral Gen Z motivational quotes using AI",
-         description="Generate viral quotes with AI-powered customizable themes and audiences",
+         summary="Generate viral Gen Z motivational quotes with optional images",
+         description="Generate viral quotes with AI-powered customizable themes and optional image generation",
          response_model=QuoteResponse)
 async def generate_quote(
     request: QuoteRequest,
     gen: ViralQuoteGenerator = Depends(get_generator)
 ) -> QuoteResponse:
     """
-    Generate a single viral Gen Z motivational quote using AI.
+    Generate a single viral Gen Z motivational quote using AI, with optional image generation.
     
     This tool creates authentic, shareable quotes that resonate with today's generation.
     Uses LangChain and OpenAI to generate unique, viral-optimized content.
+    Optionally generates beautiful motivational images using Azure OpenAI DALL-E.
     
     Inputs:
     - theme: The quote theme - 'relationships', 'self-worth', 'money', 'boundaries', 'growth', or 'mixed'
     - target_audience: Target demographic - 'gen-z', 'millennials', 'empaths', 'introverts', 'overthinkers'
     - format_preference: Optional title format preference
-    
-    Returns:
-    - A complete AI-generated quote with title, content, theme, audience, and timestamp
-    - Includes viral-optimized title and punchy, relatable content
-    
-    Example:
-    Input: {"theme": "relationships", "target_audience": "empaths"}
-    Output: {"title": "Maturity is when", "content": "you stop asking people why they don't call...", "created_at": "2025-07-15T07:10:33.705205"}
-    """
-    quote = gen.generate_quote(
-        theme=request.theme,
-        target_audience=request.target_audience,
-        format_preference=request.format_preference
-    )
-    
-    # Return only the essential fields
-    return QuoteResponse(
-        title=quote.title,
-        content=quote.content,
-        theme=quote.theme,
-        target_audience=quote.target_audience,
-        created_at=quote.created_at
-    )
-
-
-@app.post("/generate-with-image", 
-         operation_id="generate_viral_quote_with_image",
-         summary="Generate viral Gen Z quotes with motivational images",
-         description="Generate viral quotes with AI-powered image generation using Azure OpenAI DALL-E",
-         response_model=QuoteImageResponse)
-async def generate_quote_with_image(
-    request: QuoteImageRequest,
-    gen: ViralQuoteGenerator = Depends(get_generator)
-) -> QuoteImageResponse:
-    """
-    Generate a viral Gen Z motivational quote with an accompanying image.
-    
-    This tool creates authentic quotes and generates beautiful motivational images
-    using Azure OpenAI DALL-E. Perfect for social media content creation.
-    
-    Inputs:
-    - theme: The quote theme - 'relationships', 'self-worth', 'money', 'boundaries', 'growth', or 'mixed'
-    - target_audience: Target demographic - 'gen-z', 'millennials', 'empaths', 'introverts', 'overthinkers'
-    - format_preference: Optional title format preference
-    - generate_image: Whether to generate an image (default: true)
+    - image: Whether to generate an image (default: false)
     - image_style: Image style - 'paper', 'modern', 'minimal' (default: 'paper')
     
     Returns:
-    - Complete quote with title, content, theme, audience, timestamp
-    - Image filename and URL (if image generation successful)
+    - A complete AI-generated quote with title, content, theme, audience, and timestamp
+    - Image filename and URL (if image generation requested and successful)
     
     Example:
-    Input: {"theme": "relationships", "target_audience": "empaths", "image_style": "paper"}
-    Output: {"title": "Maturity is when", "content": "...", "image_filename": "quote_image_123.jpeg"}
+    Input: {"theme": "relationships", "target_audience": "empaths", "image": true}
+    Output: {"title": "Maturity is when", "content": "you stop asking people why they don't call...", "image_url": "/images/quote_123.jpeg"}
     """
-    if request.generate_image:
-        quote, filename, filepath, error = gen.generate_quote_with_image(
+    if request.image:
+        # Generate quote with image
+        quote, filename, blob_url, error = gen.generate_quote_with_image(
             theme=request.theme,
             target_audience=request.target_audience,
             format_preference=request.format_preference,
             image_style=request.image_style
         )
         
-        # Build image URL if generation was successful
-        image_url = f"/images/{filename}" if filename else None
+        # Use blob URL directly
+        image_url = blob_url if blob_url else None
         
-        return QuoteImageResponse(
+        return QuoteResponse(
             title=quote.title,
             content=quote.content,
             theme=quote.theme,
@@ -133,7 +90,7 @@ async def generate_quote_with_image(
             format_preference=request.format_preference
         )
         
-        return QuoteImageResponse(
+        return QuoteResponse(
             title=quote.title,
             content=quote.content,
             theme=quote.theme,
@@ -142,19 +99,6 @@ async def generate_quote_with_image(
             image_url=None,
             image_filename=None
         )
-
-
-@app.get("/images/{filename}",
-         operation_id="get_generated_image",
-         summary="Download generated quote image",
-         description="Download a previously generated quote image by filename")
-async def get_image(filename: str):
-    """Serve generated images"""
-    image_path = os.path.join("generated_images", filename)
-    if os.path.exists(image_path):
-        return FileResponse(image_path, media_type="image/jpeg")
-    else:
-        return {"error": "Image not found"}
 
 
 @app.get("/",
@@ -166,17 +110,18 @@ async def root():
     return {
         "name": "AI-Powered Gen Z Quote Generator API",
         "version": "1.0.0",
-        "description": "Viral motivational quote generator with AI and MCP support",
+        "description": "Viral motivational quote generator with AI, MCP support, and Azure Blob Storage",
         "ai_powered": True,
         "model": "gpt-4.1-mini",
         "endpoints": {
-            "generate": "POST /generate - Generate a single AI quote",
-            "generate-with-image": "POST /generate-with-image - Generate quote with image",
-            "images": "GET /images/{filename} - Download generated images",
+            "generate": "POST /generate - Generate AI quote with optional image",
             "mcp": "GET /mcp - MCP endpoint for AI agents"
         },
         "themes": ["relationships", "self-worth", "money", "boundaries", "growth", "mixed"],
         "audiences": ["gen-z", "millennials", "empaths", "introverts", "overthinkers"],
+        "image_storage": "Azure Blob Storage",
+        "blob_container": "891457b8-459e-47dd-9d36-49b8b8227668-azureml",
+        "blob_folder": "image-gen",
         "mcp_compatible": True,
         "storage": "stateless - no database"
     }
@@ -213,9 +158,7 @@ def main():
 📚 Docs: http://{args.host}:{args.port}/docs
 
 🛠️  MCP Tools Available:
-✅ generate_viral_quote - Generate AI-powered viral quotes
-✅ generate_viral_quote_with_image - Generate quotes with motivational images
-✅ get_generated_image - Download generated images
+✅ generate_viral_quote - Generate AI-powered viral quotes with optional images
 ✅ get_server_info - Server information
 
 🔧 For Claude Desktop, add to config:
@@ -231,7 +174,7 @@ def main():
 🎯 Example Usage:
 curl -X POST "http://{args.host}:{args.port}/generate" \\
      -H "Content-Type: application/json" \\
-     -d '{{"theme": "relationships", "target_audience": "empaths"}}'
+     -d '{{"theme": "relationships", "target_audience": "empaths", "image": true}}'
 
 💾 Architecture: Modular, stateless, no database
 🧠 AI: LangChain + OpenAI GPT-4.1-mini
@@ -239,7 +182,7 @@ curl -X POST "http://{args.host}:{args.port}/generate" \\
     
     # Run server
     uvicorn.run(
-        app,
+        "main:app",  #
         host=args.host,
         port=args.port,
         reload=args.reload

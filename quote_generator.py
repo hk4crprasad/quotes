@@ -159,10 +159,9 @@ Requirements:
         if quote.title == "Error occurred":
             return quote, None, None, quote.content
         
-        # Generate image for the quote
-        full_quote_text = f"{quote.title}\n\n{quote.content}"
-        filename, filepath, error = self.image_generator.generate_quote_image_safe(
-            full_quote_text, image_style
+        # Generate image for the quote content only (without title)
+        filename, blob_url, error = self.image_generator.generate_quote_image_safe(
+            quote.content, image_style  # Only pass the content, not the title
         )
         
-        return quote, filename, filepath, error
+        return quote, filename, blob_url, error

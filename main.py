@@ -4,10 +4,12 @@ Gen Z Quote Generator - Simplified API with modular architecture
 """
 
 from fastapi import FastAPI, Depends
+from fastapi.responses import FileResponse
 from fastapi_mcp import FastApiMCP
 import uvicorn
+import os
 
-from models import QuoteRequest, QuoteResponse
+from models import QuoteRequest, QuoteResponse, QuoteImageRequest, QuoteImageResponse
 from quote_generator import ViralQuoteGenerator
 
 
@@ -73,6 +75,88 @@ async def generate_quote(
     )
 
 
+@app.post("/generate-with-image", 
+         operation_id="generate_viral_quote_with_image",
+         summary="Generate viral Gen Z quotes with motivational images",
+         description="Generate viral quotes with AI-powered image generation using Azure OpenAI DALL-E",
+         response_model=QuoteImageResponse)
+async def generate_quote_with_image(
+    request: QuoteImageRequest,
+    gen: ViralQuoteGenerator = Depends(get_generator)
+) -> QuoteImageResponse:
+    """
+    Generate a viral Gen Z motivational quote with an accompanying image.
+    
+    This tool creates authentic quotes and generates beautiful motivational images
+    using Azure OpenAI DALL-E. Perfect for social media content creation.
+    
+    Inputs:
+    - theme: The quote theme - 'relationships', 'self-worth', 'money', 'boundaries', 'growth', or 'mixed'
+    - target_audience: Target demographic - 'gen-z', 'millennials', 'empaths', 'introverts', 'overthinkers'
+    - format_preference: Optional title format preference
+    - generate_image: Whether to generate an image (default: true)
+    - image_style: Image style - 'paper', 'modern', 'minimal' (default: 'paper')
+    
+    Returns:
+    - Complete quote with title, content, theme, audience, timestamp
+    - Image filename and URL (if image generation successful)
+    
+    Example:
+    Input: {"theme": "relationships", "target_audience": "empaths", "image_style": "paper"}
+    Output: {"title": "Maturity is when", "content": "...", "image_filename": "quote_image_123.jpeg"}
+    """
+    if request.generate_image:
+        quote, filename, filepath, error = gen.generate_quote_with_image(
+            theme=request.theme,
+            target_audience=request.target_audience,
+            format_preference=request.format_preference,
+            image_style=request.image_style
+        )
+        
+        # Build image URL if generation was successful
+        image_url = f"/images/{filename}" if filename else None
+        
+        return QuoteImageResponse(
+            title=quote.title,
+            content=quote.content,
+            theme=quote.theme,
+            target_audience=quote.target_audience,
+            created_at=quote.created_at,
+            image_url=image_url,
+            image_filename=filename
+        )
+    else:
+        # Just generate quote without image
+        quote = gen.generate_quote(
+            theme=request.theme,
+            target_audience=request.target_audience,
+            format_preference=request.format_preference
+        )
+        
+        return QuoteImageResponse(
+            title=quote.title,
+            content=quote.content,
+            theme=quote.theme,
+            target_audience=quote.target_audience,
+            created_at=quote.created_at,
+            image_url=None,
+            image_filename=None
+        )
+
+
+@app.get("/images/{filename}",
+         operation_id="get_generated_image",
+         summary="Download generated quote image",
+         description="Download a previously generated quote image by filename")
+async def get_image(filename: str):
+    """Serve generated images"""
+    image_path = os.path.join("generated_images", filename)
+    if os.path.exists(image_path):
+        return FileResponse(image_path, media_type="image/jpeg")
+    else:
+        return {"error": "Image not found"}
+
+
 @app.get("/",
          operation_id="get_server_info",
          summary="Get server information",
@@ -87,6 +171,8 @@ async def root():
         "model": "gpt-4.1-mini",
         "endpoints": {
             "generate": "POST /generate - Generate a single AI quote",
+            "generate-with-image": "POST /generate-with-image - Generate quote with image",
+            "images": "GET /images/{filename} - Download generated images",
             "mcp": "GET /mcp - MCP endpoint for AI agents"
         },
         "themes": ["relationships", "self-worth", "money", "boundaries", "growth", "mixed"],
@@ -128,6 +214,8 @@ def main():
 
 🛠️  MCP Tools Available:
 ✅ generate_viral_quote - Generate AI-powered viral quotes
+✅ generate_viral_quote_with_image - Generate quotes with motivational images
+✅ get_generated_image - Download generated images
 ✅ get_server_info - Server information
 
 🔧 For Claude Desktop, add to config:

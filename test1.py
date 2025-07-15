@@ -1,111 +1,76 @@
-# Medical PDF Analyzer - Extract Diagnoses and Procedures
-# Dependencies:
-# pip install google-genai PyMuPDF Pillow
-import base64
 import os
-import fitz  # PyMuPDF
-from google import genai
-from google.genai import types
+import requests
+import base64
+from PIL import Image
+from io import BytesIO
 
-# Set up your Google Gemini API key
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or "AIzaSyBIsDN1738uvZIxHnZw-00U3cY3eL6nxPI"
+# Required Environment Variables or replace with hardcoded values
+endpoint = os.getenv("AZURE_OPENAI_ENDPOINT", "https://hara-md2td469-westus3.cognitiveservices.azure.com/")  
+deployment = os.getenv("DEPLOYMENT_NAME", "gpt-image-1")
+api_version = os.getenv("OPENAI_API_VERSION", "2025-04-01-preview")
+subscription_key = os.getenv("AZURE_OPENAI_API_KEY", "ED8577EwFs8pfLmI8M2tusvBFaQKKy56YQDTnrhK1aIjBtZlsdv6JQQJ99BGACMsfrFXJ3w3AAAAACOGy4vI")
 
-def extract_text_from_pdf(pdf_path):
-    """Extract all text from a PDF file using PyMuPDF."""
-    doc = fitz.open(pdf_path)
-    text = ""
-    for page in doc:
-        page_text = page.get_text()
-        if page_text:
-            text += page_text + "\n"
-    doc.close()
-    return text.strip()
+def decode_and_save_image(b64_data, output_filename):
+    image = Image.open(BytesIO(base64.b64decode(b64_data)))
+    image.show()
+    image.save(output_filename)
 
-def extract_medical_info(pdf_path):
-    """Extract diagnoses and procedures from medical PDF using Gemma (text-only)."""
-    client = genai.Client(api_key=GEMINI_API_KEY)
-    # Extract text from PDF
-    pdf_text = extract_text_from_pdf(pdf_path)
-    if not pdf_text:
-        print("No extractable text found in PDF.")
+def save_all_images_from_response(response_data, filename_prefix):
+    if 'data' not in response_data:
+        print("❌ Error: 'data' field missing in response.")
+        print("🔎 Full response:")
+        print(response_data)
         return
 
-    medical_prompt = """
-You are a medical document analyzer. Carefully analyze the following medical document and extract only the following information:
+    for idx, item in enumerate(response_data['data']):
+        b64_img = item['b64_json']
+        filename = f"{filename_prefix}_{idx+1}.jpeg"
+        decode_and_save_image(b64_img, filename)
+        print(f"✅ Image saved to: '{filename}'")
 
-**DIAGNOSES:**
-- List all diagnosis names mentioned (primary and secondary), one per line.
-- IMPORTANT: Remove any text in parentheses. Only output the main diagnosis name, without any codes or extra details in parentheses or brackets.
+# User provides quote here
+user_quote = input("Enter your quote: ")
 
-**PROCEDURES:**
-- List all procedure names performed or mentioned, one per line.
-- IMPORTANT: Remove any text in parentheses. Only output the main procedure name, without any codes or extra details in parentheses or brackets.
+# Build the custom prompt using the user input
+custom_prompt = f"""
+Design a square motivational quote image with a realistic paper-like texture as the background. 
+Use bold black serif or clean font for the quote. Highlight key parts of the text in yellow, 
+as if marked with a highlighter. Place the quote in the center of the image, and in the bottom-right corner, 
+write “—hara point” in a smaller, minimalist font. At the bottom center, include the line: “Share this if you agree.” 
+The overall style should match an inspirational Instagram quote post with a warm, authentic, and thoughtful aesthetic.
+Quote: {user_quote}
+"""
 
-**CODES:**
-- List all ICD-10 codes found in the document, one per line, without diagnosis names.
-- List all CPT codes found in the document, one per line, without procedure names.
+# Build request
+base_path = f'openai/deployments/{deployment}/images'
+params = f'?api-version={api_version}'
 
-Format your response exactly as follows:
+generation_url = f"{endpoint}{base_path}/generations{params}"
+generation_body = {
+    "prompt": custom_prompt.strip(),
+    "n": 1,
+    "size": "1024x1024",
+    "quality": "medium",
+    "output_format": "jpeg",
+}
 
-## DIAGNOSES
-1. [Diagnosis name]
-2. ...
+# Call API
+generation_response = requests.post(
+    generation_url,
+    headers={
+        'Api-Key': subscription_key,
+        'Content-Type': 'application/json',
+    },
+    json=generation_body
+)
 
-## PROCEDURES
-1. [Procedure name]
-2. ...
+# Check for HTTP or JSON errors
+try:
+    json_response = generation_response.json()
+except Exception as e:
+    print("❌ Failed to parse JSON:", e)
+    print("🔎 Raw Response Text:", generation_response.text)
+    exit(1)
 
-## ICD-10 CODES
-1. [ICD-10 code]
-2. ...
-
-## CPT CODES
-1. [CPT code]
-2. ...
-
-If any section is not found in the document, indicate "Not specified in document".
-
-Do not include chief complaint, medications, follow-up, or any other information.
-
-Medical Document Text:
-""" + pdf_text
-
-    contents = [
-        types.Content(
-            role="user",
-            parts=[types.Part.from_text(text=medical_prompt)],
-        ),
-    ]
-
-    generate_content_config = types.GenerateContentConfig(
-        response_mime_type="text/plain",
-        temperature=0.1,
-    )
-
-    print("Analyzing medical document...")
-    print("=" * 50)
-
-    try:
-        model = "gemma-3n-e4b-it"  # Text-only model
-        for chunk in client.models.generate_content_stream(
-            model=model,
-            contents=contents,
-            config=generate_content_config,
-        ):
-            print(chunk.text, end="")
-    except Exception as e:
-        print(f"Error processing document: {str(e)}")
-        print("Please ensure your PDF is a valid medical document and try again.")
-
-def main():
-    pdf_path = "/home/tecosys/Nutaan-ICD-HCC-Finder/Medical_Claim_Diagnosis_Review.pdf"
-    if not os.path.exists(pdf_path):
-        print("Error: File not found. Please check the path and try again.")
-        return
-    if not pdf_path.lower().endswith('.pdf'):
-        print("Error: Please provide a PDF file.")
-        return
-    extract_medical_info(pdf_path)
-
-if __name__ == "__main__":
-    main()
+# Save Image(s) or print error
+save_all_images_from_response(json_response, "generated_image")

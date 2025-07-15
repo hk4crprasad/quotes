@@ -17,6 +17,7 @@ from config import (
     OPENAI_API_BASE, OPENAI_API_KEY, MODEL_NAME, TEMPERATURE,
     TITLE_PATTERNS, CONTENT_THEMES, QUOTE_GENERATOR_PROMPT
 )
+from image_generator import QuoteImageGenerator
 
 
 class ViralQuoteGenerator:
@@ -29,6 +30,7 @@ class ViralQuoteGenerator:
             model=MODEL_NAME,
             temperature=TEMPERATURE
         )
+        self.image_generator = QuoteImageGenerator()
         
     def _generate_ai_quote(self, theme: str = "mixed", target_audience: str = "gen-z", 
                           format_preference: Optional[str] = None) -> dict:
@@ -145,3 +147,22 @@ Requirements:
                 target_audience=target_audience,
                 created_at=datetime.now().isoformat()
             )
+    
+    def generate_quote_with_image(self, theme: str = "mixed", target_audience: str = "gen-z", 
+                                 format_preference: Optional[str] = None, 
+                                 image_style: str = "paper") -> tuple:
+        """Generate a viral quote with optional image"""
+        # First generate the quote
+        quote = self.generate_quote(theme, target_audience, format_preference)
+        
+        # If quote generation failed, return quote with no image
+        if quote.title == "Error occurred":
+            return quote, None, None, quote.content
+        
+        # Generate image for the quote
+        full_quote_text = f"{quote.title}\n\n{quote.content}"
+        filename, filepath, error = self.image_generator.generate_quote_image_safe(
+            full_quote_text, image_style
+        )
+        
+        return quote, filename, filepath, error

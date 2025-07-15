@@ -31,3 +31,23 @@ class QuoteRequest(BaseModel):
     theme: str = Field(default="mixed", description="Theme for the quote")
     target_audience: str = Field(default="gen-z", description="Target audience")
     format_preference: Optional[str] = Field(default=None, description="Preferred format")
+
+
+class QuoteImageRequest(BaseModel):
+    """Request model for generating quotes with images"""
+    theme: str = Field(default="mixed", description="Theme for the quote")
+    target_audience: str = Field(default="gen-z", description="Target audience")
+    format_preference: Optional[str] = Field(default=None, description="Preferred format")
+    generate_image: bool = Field(default=True, description="Whether to generate an image")
+    image_style: str = Field(default="paper", description="Image style: paper, modern, minimal")
+
+
+class QuoteImageResponse(BaseModel):
+    """Response model for quotes with images"""
+    title: str
+    content: str
+    theme: str
+    target_audience: str
+    created_at: Optional[str] = None
+    image_url: Optional[str] = None
+    image_filename: Optional[str] = None

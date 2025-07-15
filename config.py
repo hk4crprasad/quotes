@@ -15,6 +15,12 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 MODEL_NAME = "gpt-4.1-mini"
 TEMPERATURE = 0.8
 
+# Azure OpenAI Image Generation Configuration
+AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT", "https://hara-md2td469-westus3.cognitiveservices.azure.com/")
+AZURE_DEPLOYMENT_NAME = os.getenv("DEPLOYMENT_NAME", "gpt-image-1")
+AZURE_API_VERSION = os.getenv("OPENAI_API_VERSION", "2025-04-01-preview")
+AZURE_SUBSCRIPTION_KEY = os.getenv("AZURE_OPENAI_API_KEY", "ED8577EwFs8pfLmI8M2tusvBFaQKKy56YQDTnrhK1aIjBtZlsdv6JQQJ99BGACMsfrFXJ3w3AAAAACOGy4vI")
+
 # Dynamic title patterns for variety
 TITLE_PATTERNS = [
     "Maturity is when",
@@ -117,6 +123,33 @@ CONTENT_THEMES = {
         "understand that saving is just as important as earning",
         "know that your net worth affects your self-worth"
     ]
+}
+
+# Image generation style templates
+IMAGE_STYLE_TEMPLATES = {
+    "paper": """
+Design a square motivational quote image with a realistic paper-like texture as the background. 
+Use bold black serif or clean font for the quote. Highlight key parts of the text in yellow, 
+as if marked with a highlighter. Place the quote in the center of the image, and in the bottom-right corner, 
+write "—hara point" in a smaller, minimalist font. At the bottom center, include the line: "Share this if you agree." 
+The overall style should match an inspirational Instagram quote post with a warm, authentic, and thoughtful aesthetic.
+Quote: {quote_text}
+""",
+    "modern": """
+Create a modern, minimalist square quote image with a clean gradient background. 
+Use a contemporary sans-serif font in dark text for the quote. 
+Center the quote with proper spacing and add "—hara point" in the bottom-right corner in a subtle font. 
+Include "Share this if you agree" at the bottom center. 
+Style should be clean, professional, and Instagram-ready.
+Quote: {quote_text}
+""",
+    "minimal": """
+Design a simple, elegant square quote image with a solid color or subtle texture background. 
+Use clean typography with the quote prominently centered. 
+Add "—hara point" attribution in the bottom-right and "Share this if you agree" at the bottom center. 
+Keep the design minimalist and focused on the text.
+Quote: {quote_text}
+"""
 }
 
 # System Prompt for AI Quote Generation

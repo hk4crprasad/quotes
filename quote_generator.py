@@ -15,7 +15,8 @@ from langchain.schema import SystemMessage, HumanMessage
 from models import Quote
 from config import (
     OPENAI_API_BASE, OPENAI_API_KEY, MODEL_NAME, TEMPERATURE,
-    TITLE_PATTERNS, CONTENT_THEMES, QUOTE_GENERATOR_PROMPT
+    TITLE_PATTERNS, CONTENT_THEMES, QUOTE_GENERATOR_PROMPT,
+    CAPTION_TEMPLATES, MOTIVATIONAL_HASHTAGS
 )
 from image_generator import QuoteImageGenerator
 from video_generator import QuoteVideoGenerator
@@ -74,7 +75,7 @@ class ViralQuoteGenerator:
         # Construct the prompt with more variety
         user_prompt = f"""Generate ONE completely unique viral motivational quote in JSON format. {variety_instruction}.
 
-IMPORTANT: Use title pattern: "{suggested_title}" or similar variation
+IMPORTANT: Use a catchy title (3-4 words) similar to: "{suggested_title}"
 {theme_instruction}
 
 Target audience: {target_audience}
@@ -87,7 +88,7 @@ Requirements:
 - Ensure it's shareable and screenshot-worthy
 - Provide genuine wisdom and fresh insight
 - Keep content under 25 words
-- Make title engaging and clickable
+- Make title exactly 3-4 words (catchy and memorable)
 - Ensure content complements the title perfectly"""
 
         messages = [
@@ -126,18 +127,39 @@ Requirements:
                 "error": f"Generation error: {str(e)}"
             }
 
+    def _generate_caption(self, quote_title: str) -> str:
+        """Generate social media caption with hashtags"""
+        # Choose a random caption template
+        caption_template = random.choice(CAPTION_TEMPLATES)
+        
+        # Add a line about the title
+        title_line = f'"{quote_title}" - Let this sink in 💭'
+        
+        # Select random hashtags (15-20 hashtags for good reach)
+        selected_hashtags = random.sample(MOTIVATIONAL_HASHTAGS, 18)
+        hashtag_string = " ".join(selected_hashtags)
+        
+        # Combine all parts
+        full_caption = f"{caption_template}\n\n{title_line}\n\n{hashtag_string}"
+        
+        return full_caption
+
     def generate_quote(self, theme: str = "mixed", target_audience: str = "gen-z", 
                       format_preference: Optional[str] = None) -> Quote:
         """Generate a viral quote using AI"""
         ai_result = self._generate_ai_quote(theme, target_audience, format_preference)
         
         if ai_result["success"]:
+            # Generate caption with hashtags
+            caption = self._generate_caption(ai_result["title"])
+            
             quote = Quote(
                 title=ai_result["title"],
                 content=ai_result["content"],
                 theme=ai_result["theme"],
                 target_audience=ai_result["target_audience"],
-                created_at=datetime.now().isoformat()
+                created_at=datetime.now().isoformat(),
+                caption=caption
             )
             return quote
         else:
@@ -147,7 +169,8 @@ Requirements:
                 content=f"Quote generation failed: {ai_result.get('error', 'Unknown error')}",
                 theme=theme,
                 target_audience=target_audience,
-                created_at=datetime.now().isoformat()
+                created_at=datetime.now().isoformat(),
+                caption="Follow for more content! #motivation #quotes #inspiration"
             )
     
     def generate_quote_with_image(self, theme: str = "mixed", target_audience: str = "gen-z", 

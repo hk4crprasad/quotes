@@ -38,46 +38,73 @@ BACKGROUND_COLOR = (20, 20, 20)  # Dark background
 BANNER_COLOR = (255, 255, 255)  # White banner
 BANNER_HEIGHT = 160
 BANNER_Y_POSITION = 300
-TITLE_FONT_SIZE = 70
+TITLE_FONT_SIZE = 45  # Reduced from 70 to fit better in banner
 TITLE_COLOR = 'black'
+
+# Caption Generation Configuration
+CAPTION_TEMPLATES = [
+    "Follow to get such interesting content 🔥",
+    "Follow for more motivational content 💪",
+    "Follow to get daily inspiration ✨",
+    "Follow for life-changing quotes 🌟",
+    "Follow to upgrade your mindset 🧠",
+    "Follow for powerful daily reminders 💯",
+    "Follow to level up your life 📈",
+    "Follow for wisdom that hits different 🎯",
+    "Follow for content that transforms 🔄",
+    "Follow to feed your soul daily 🙏"
+]
+
+MOTIVATIONAL_HASHTAGS = [
+    "#motivation", "#inspiration", "#mindset", "#success", "#growth",
+    "#selfimprovement", "#positivity", "#wisdom", "#life", "#goals",
+    "#mindfulness", "#healing", "#strength", "#confidence", "#hustle",
+    "#discipline", "#focus", "#energy", "#vibes", "#transformation",
+    "#mentalhealth", "#selfcare", "#boundaries", "#worth", "#value",
+    "#leadership", "#entrepreneur", "#business", "#money", "#freedom",
+    "#peace", "#balance", "#happiness", "#joy", "#love",
+    "#thoughts", "#thinking", "#lesson", "#todaymotivation", "#gym",
+    "#fitness", "#health", "#wellness", "#lifestyle", "#daily",
+    "#quote", "#quotes", "#viral", "#trending", "#fyp",
+    "#explore", "#reel", "#content", "#follow", "#share"
+]
 
 # Dynamic title patterns for variety
 TITLE_PATTERNS = [
-    "Maturity is when",
-    "Painful but true:",
-    "Rules for 2025:",
-    "The moment you realize",
-    "Never ignore someone who",
-    "Make money so you can",
-    "At 25, you learn that",
-    "At 30, you understand",
-    "When my Dad said this:",
-    "MAN VS WOMAN:",
-    "Everything wants you when",
-    "Literally my mind when someone says",
-    "The hardest truth:",
-    "Real talk:",
-    "Life hits different when",
-    "Nobody tells you that",
-    "Growing up means",
-    "Therapy taught me that",
-    "Your 20s are for",
-    "Stop romanticizing",
-    "Normalize",
-    "Red flag:",
-    "Green flag:",
-    "Toxic trait:",
-    "Healthy habit:",
-    "Mental health reminder:",
-    "Boundaries 101:",
-    "Self-love is",
-    "Healing looks like",
-    "Adulting means",
-    "Plot twist:",
-    "Unpopular opinion:",
-    "Hot take:",
-    "Daily reminder:",
-    "Fun fact:",
+    "Life Gets Real",
+    "Truth About Life",
+    "Reality Check Time",
+    "Facts About Growth",
+    "Wisdom For Today",
+    "Growth Mindset Shift",
+    "Life Lessons Learned",
+    "Real Talk Moment",
+    "Vibe Check Needed",
+    "Energy You Need",
+    "Mindset That Matters",
+    "Healing Takes Time",
+    "Boundaries Are Key",
+    "Self Love First",
+    "Toxic Behavior Alert",
+    "Healthy Habits Matter",
+    "Red Flag Warning",
+    "Green Flag Energy",
+    "Plot Twist Ahead",
+    "Hot Take Alert",
+    "Daily Reminder Here",
+    "Adulting Is Hard",
+    "Therapy Taught Me",
+    "Growth Never Stops",
+    "Money Mindset Shift",
+    "Success Looks Different",
+    "Freedom Costs Everything",
+    "Peace Over Drama",
+    "Balance Is Everything",
+    "Focus On You",
+    "Power In Silence",
+    "Strength From Within",
+    "Know Your Worth",
+    "Value Your Time"
     "PSA:",
     "Note to self:",
     "Learning to",
@@ -182,7 +209,7 @@ Generate ONE short, punchy viral quote that hits deep and feels instantly relata
 You MUST respond with valid JSON in this exact format:
 ```json
 {
-  "title": "[VARIED_TITLE_PATTERN]",
+  "title": "[SHORT_CATCHY_TITLE_3-4_WORDS]",
   "content": "[UNIQUE_RELATABLE_CONTENT]"
 }
 ```
@@ -191,6 +218,7 @@ You MUST respond with valid JSON in this exact format:
 
 ### 1. KEEP IT SHORT & PUNCHY
 - **Maximum 25 words for content**
+- **Exactly 3-4 words for title**
 - **Direct, simple language** 
 - **One clear insight per quote**
 - **No unnecessary words**

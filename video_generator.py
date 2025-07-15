@@ -138,25 +138,39 @@ class QuoteVideoGenerator:
             
             # Title text centered inside banner
             title_text = quote_title if quote_title else self.title_text
+            
+            # Dynamic font sizing based on text length
+            if len(title_text) > 15:
+                dynamic_font_size = 35  # Smaller for longer titles
+                print(f"📝 Long title ({len(title_text)} chars), using font size: {dynamic_font_size}")
+            elif len(title_text) > 10:
+                dynamic_font_size = 40  # Medium for medium titles
+                print(f"📝 Medium title ({len(title_text)} chars), using font size: {dynamic_font_size}")
+            else:
+                dynamic_font_size = TITLE_FONT_SIZE  # Default for short titles
+                print(f"📝 Short title ({len(title_text)} chars), using font size: {dynamic_font_size}")
+            
+            print(f"📝 Title text: '{title_text}'")
+            
             try:
                 title_clip = TextClip(
                     text=title_text,
                     font=font_main,
                     method='caption',
-                    size=(self.video_size[0] - 100, None),
-                    font_size=TITLE_FONT_SIZE,
+                    size=(self.video_size[0] - 200, banner_height - 40),  # More padding and height constraint
+                    font_size=dynamic_font_size,
                     color=TITLE_COLOR
-                ).with_duration(video_duration).with_position(("center", banner_y + 35))
+                ).with_duration(video_duration).with_position(("center", banner_y + 20))  # Better vertical centering
             except Exception as font_error:
                 print(f"⚠️ Font error, using default font: {font_error}")
                 # Fallback without specifying font
                 title_clip = TextClip(
                     text=title_text,
                     method='caption',
-                    size=(self.video_size[0] - 100, None),
-                    font_size=TITLE_FONT_SIZE,
+                    size=(self.video_size[0] - 200, banner_height - 40),  # More padding and height constraint
+                    font_size=dynamic_font_size,
                     color=TITLE_COLOR
-                ).with_duration(video_duration).with_position(("center", banner_y + 35))
+                ).with_duration(video_duration).with_position(("center", banner_y + 20))  # Better vertical centering
             
             # Quote image fades in after delay
             print("🖼️ Creating quote image clip...")

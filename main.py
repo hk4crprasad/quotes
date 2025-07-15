@@ -32,8 +32,8 @@ def get_generator() -> ViralQuoteGenerator:
 
 @app.post("/generate", 
          operation_id="generate_viral_quote",
-         summary="Generate viral Gen Z motivational quotes with optional images and videos",
-         description="Generate viral quotes with AI-powered customizable themes, optional image generation, and video creation with AI-generated titles",
+         summary="Generate viral Gen Z motivational quotes with captions, images and videos",
+         description="Generate viral quotes with AI-powered captions, hashtags, customizable themes, optional image generation, and video creation with AI-generated titles",
          response_model=QuoteResponse)
 async def generate_quote(
     request: QuoteRequest,
@@ -85,6 +85,7 @@ async def generate_quote(
             theme=quote.theme,
             target_audience=quote.target_audience,
             created_at=quote.created_at,
+            caption=quote.caption,
             image_url=image_blob_url,
             image_filename=image_filename,
             video_url=video_blob_url,
@@ -105,6 +106,7 @@ async def generate_quote(
             theme=quote.theme,
             target_audience=quote.target_audience,
             created_at=quote.created_at,
+            caption=quote.caption,
             image_url=blob_url,
             image_filename=filename,
             video_url=None,
@@ -124,6 +126,7 @@ async def generate_quote(
             theme=quote.theme,
             target_audience=quote.target_audience,
             created_at=quote.created_at,
+            caption=quote.caption,
             image_url=None,
             image_filename=None,
             video_url=None,
@@ -197,7 +200,7 @@ def main():
 📚 Docs: http://{args.host}:{args.port}/docs
 
 🛠️  MCP Tools Available:
-✅ generate_viral_quote - Generate AI-powered viral quotes with optional images and videos
+✅ generate_viral_quote - Generate AI quotes with captions, hashtags, images and videos
 ✅ get_server_info - Server information
 
 🔧 For Claude Desktop, add to config:

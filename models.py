@@ -15,6 +15,7 @@ class Quote:
     theme: str = "mixed"
     target_audience: str = "gen-z"
     created_at: Optional[str] = None
+    caption: str = ""
 
 
 class QuoteResponse(BaseModel):
@@ -24,6 +25,7 @@ class QuoteResponse(BaseModel):
     theme: str
     target_audience: str
     created_at: Optional[str] = None
+    caption: str
     image_url: Optional[str] = None
     image_filename: Optional[str] = None
     video_url: Optional[str] = None

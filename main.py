@@ -3,12 +3,14 @@
 Gen Z Quote Generator - Simplified API with modular architecture
 """
 
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi_mcp import FastApiMCP
+import requests
 import uvicorn
 import os
-
-from models import QuoteRequest, QuoteResponse
+from config import ACCESS_TOKEN, BASE_URL, INSTAGRAM_USER_ID
+from instaupload import InstagramReelsAPI  , api_client
+from models import QuickReelRequest, QuoteRequest, QuoteResponse, ReelUploadRequest, ReelUploadResponse, StatusResponse
 from quote_generator import ViralQuoteGenerator
 
 
@@ -168,6 +170,191 @@ async def root():
         "storage": "stateless - no database"
     }
 
+
+@app.get("/")
+async def root():
+    return {
+        "message": "Instagram Reels API Server",
+        "version": "1.0.0",
+        "endpoints": {
+            "POST /upload": "Upload a reel with full options",
+            "POST /quick-upload": "Quick upload with just video_url and caption",
+            "GET /status/{container_id}": "Check container status",
+            "GET /health": "Health check"
+        }
+    }
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    try:
+        # Test API connectivity
+        response = requests.get(
+            f"{BASE_URL}/{INSTAGRAM_USER_ID}?fields=id&access_token={ACCESS_TOKEN}",
+            timeout=10
+        )
+        if response.status_code == 200:
+            return {"status": "healthy", "instagram_api": "connected"}
+        else:
+            return {"status": "unhealthy", "instagram_api": "failed"}
+    except Exception as e:
+        return {"status": "unhealthy", "error": str(e)}
+
+@app.post("/upload", response_model=ReelUploadResponse)
+async def upload_reel(request: ReelUploadRequest):
+    """
+    Upload Instagram Reel with full options
+    
+    - **video_url**: Publicly accessible HTTPS URL to the video
+    - **caption**: Caption for the reel
+    - **share_to_feed**: Whether to show in both Feed and Reels tabs
+    - **thumb_offset**: Thumbnail frame offset in milliseconds
+    - **location_id**: Facebook Page ID for location tagging
+    """
+    try:
+        result = api_client.upload_reel_complete(
+            video_url=str(request.video_url),
+            caption=request.caption,
+            share_to_feed=request.share_to_feed,
+            thumb_offset=request.thumb_offset,
+            location_id=request.location_id
+        )
+        
+        return ReelUploadResponse(
+            success=True,
+            message="Reel uploaded successfully!",
+            container_id=result["container_id"],
+            media_id=result["media_id"],
+            status=result["status"]
+        )
+        
+    except requests.exceptions.RequestException as e:
+        error_msg = f"API request failed: {str(e)}"
+        if hasattr(e, 'response') and e.response is not None:
+            try:
+                error_detail = e.response.json()
+                error_msg = f"Instagram API Error: {error_detail.get('error', {}).get('message', str(e))}"
+            except:
+                error_msg = f"HTTP {e.response.status_code}: {e.response.text}"
+        
+        raise HTTPException(status_code=400, detail=error_msg)
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+@app.post("/quick-upload", response_model=ReelUploadResponse)
+async def quick_upload_reel(request: QuickReelRequest):
+    """
+    Quick upload Instagram Reel with just video URL and caption
+    
+    - **video_url**: Publicly accessible HTTPS URL to the video
+    - **caption**: Caption for the reel
+    """
+    try:
+        result = api_client.upload_reel_complete(
+            video_url=str(request.video_url),
+            caption=request.caption,
+            share_to_feed=True
+        )
+        
+        return ReelUploadResponse(
+            success=True,
+            message="Reel uploaded successfully!",
+            container_id=result["container_id"],
+            media_id=result["media_id"],
+            status=result["status"]
+        )
+        
+    except requests.exceptions.RequestException as e:
+        error_msg = f"API request failed: {str(e)}"
+        if hasattr(e, 'response') and e.response is not None:
+            try:
+                error_detail = e.response.json()
+                error_msg = f"Instagram API Error: {error_detail.get('error', {}).get('message', str(e))}"
+            except:
+                error_msg = f"HTTP {e.response.status_code}: {e.response.text}"
+        
+        raise HTTPException(status_code=400, detail=error_msg)
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+@app.get("/status/{container_id}", response_model=StatusResponse)
+async def check_status(container_id: str):
+    """
+    Check the status of a media container
+    
+    - **container_id**: ID of the container to check
+    """
+    try:
+        status = api_client.check_container_status(container_id)
+        
+        status_messages = {
+            "FINISHED": "Container is ready for publishing",
+            "IN_PROGRESS": "Container is still processing",
+            "ERROR": "Container failed to process",
+            "EXPIRED": "Container has expired",
+            "UNKNOWN": "Unknown status"
+        }
+        
+        return StatusResponse(
+            success=True,
+            status=status,
+            message=status_messages.get(status, f"Status: {status}")
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to check status: {str(e)}")
+
+@app.post("/container/create")
+async def create_container_only(request: ReelUploadRequest):
+    """
+    Create container only (for manual publishing later)
+    """
+    try:
+        result = api_client.create_reel_container(
+            video_url=str(request.video_url),
+            caption=request.caption,
+            share_to_feed=request.share_to_feed,
+            thumb_offset=request.thumb_offset,
+            location_id=request.location_id
+        )
+        
+        return {
+            "success": True,
+            "message": "Container created successfully",
+            "container_id": result["id"]
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to create container: {str(e)}")
+
+@app.post("/container/{container_id}/publish")
+async def publish_container(container_id: str):
+    """
+    Publish a ready container
+    """
+    try:
+        # Check if container is ready
+        status = api_client.check_container_status(container_id)
+        if status != "FINISHED":
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Container not ready. Status: {status}"
+            )
+        
+        result = api_client.publish_reel(container_id)
+        
+        return {
+            "success": True,
+            "message": "Reel published successfully",
+            "media_id": result["id"]
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to publish: {str(e)}")
 
 # Initialize FastAPI MCP
 mcp = FastApiMCP(

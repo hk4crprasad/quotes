@@ -4,7 +4,7 @@ Data models for the Gen Z Quote Generator
 
 from dataclasses import dataclass
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, HttpUrl
 
 
 @dataclass
@@ -40,3 +40,27 @@ class QuoteRequest(BaseModel):
     image: bool = Field(default=False, description="Whether to generate an image")
     image_style: str = Field(default="paper", description="Image style: paper, modern, minimal")
     video: bool = Field(default=False, description="Whether to generate a video (requires image=true)")
+
+class ReelUploadRequest(BaseModel):
+    video_url: HttpUrl
+    caption: str = ""
+    share_to_feed: bool = True
+    thumb_offset: Optional[int] = None
+    location_id: Optional[str] = None
+
+class QuickReelRequest(BaseModel):
+    video_url: HttpUrl
+    caption: str
+
+# Response models
+class ReelUploadResponse(BaseModel):
+    success: bool
+    message: str
+    container_id: Optional[str] = None
+    media_id: Optional[str] = None
+    status: Optional[str] = None
+
+class StatusResponse(BaseModel):
+    success: bool
+    status: str
+    message: str

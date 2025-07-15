@@ -15,6 +15,10 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 MODEL_NAME = "gpt-4.1-mini"
 TEMPERATURE = 0.8
 
+ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")
+INSTAGRAM_USER_ID = "17841475846754872"
+BASE_URL = "https://graph.instagram.com/v23.0"
+
 # Azure OpenAI Image Generation Configuration
 AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT", "https://hara-md2td469-westus3.cognitiveservices.azure.com/")
 AZURE_DEPLOYMENT_NAME = os.getenv("DEPLOYMENT_NAME", "gpt-image-1")

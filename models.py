@@ -26,6 +26,8 @@ class QuoteResponse(BaseModel):
     created_at: Optional[str] = None
     image_url: Optional[str] = None
     image_filename: Optional[str] = None
+    video_url: Optional[str] = None
+    video_filename: Optional[str] = None
 
 
 class QuoteRequest(BaseModel):
@@ -35,3 +37,4 @@ class QuoteRequest(BaseModel):
     format_preference: Optional[str] = Field(default=None, description="Preferred format")
     image: bool = Field(default=False, description="Whether to generate an image")
     image_style: str = Field(default="paper", description="Image style: paper, modern, minimal")
+    video: bool = Field(default=False, description="Whether to generate a video (requires image=true)")

@@ -25,6 +25,21 @@ AZURE_SUBSCRIPTION_KEY = os.getenv("AZURE_OPENAI_API_KEY")
 AZURE_STORAGE_CONNECTION_STRING = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
 AZURE_CONTAINER_NAME = os.getenv("AZURE_CONTAINER_NAME")
 AZURE_BLOB_FOLDER = os.getenv("AZURE_BLOB_FOLDER", "image-gen")
+AZURE_VIDEO_FOLDER = os.getenv("AZURE_VIDEO_FOLDER", "video-gen")
+
+# Video Generation Configuration
+DEFAULT_AUDIO_FILE = os.getenv("DEFAULT_AUDIO_FILE", "/home/tecosys/quotes/new.mp3")
+VIDEO_SIZE = (1080, 1920)  # Portrait mode for social media
+VIDEO_TITLE = "Daily Vibe"
+FADE_IN_DELAY = 9  # seconds
+FADE_IN_DURATION = 4  # seconds
+VIDEO_FPS = 24
+BACKGROUND_COLOR = (20, 20, 20)  # Dark background
+BANNER_COLOR = (255, 255, 255)  # White banner
+BANNER_HEIGHT = 160
+BANNER_Y_POSITION = 300
+TITLE_FONT_SIZE = 70
+TITLE_COLOR = 'black'
 
 # Dynamic title patterns for variety
 TITLE_PATTERNS = [

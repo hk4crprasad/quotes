@@ -32,19 +32,20 @@ def get_generator() -> ViralQuoteGenerator:
 
 @app.post("/generate", 
          operation_id="generate_viral_quote",
-         summary="Generate viral Gen Z motivational quotes with optional images",
-         description="Generate viral quotes with AI-powered customizable themes and optional image generation",
+         summary="Generate viral Gen Z motivational quotes with optional images and videos",
+         description="Generate viral quotes with AI-powered customizable themes, optional image generation, and video creation with AI-generated titles",
          response_model=QuoteResponse)
 async def generate_quote(
     request: QuoteRequest,
     gen: ViralQuoteGenerator = Depends(get_generator)
 ) -> QuoteResponse:
     """
-    Generate a single viral Gen Z motivational quote using AI, with optional image generation.
+    Generate a single viral Gen Z motivational quote using AI, with optional image and video generation.
     
     This tool creates authentic, shareable quotes that resonate with today's generation.
     Uses LangChain and OpenAI to generate unique, viral-optimized content.
     Optionally generates beautiful motivational images using Azure OpenAI DALL-E.
+    Optionally creates engaging videos using MoviePy for social media.
     
     Inputs:
     - theme: The quote theme - 'relationships', 'self-worth', 'money', 'boundaries', 'growth', or 'mixed'
@@ -52,26 +53,31 @@ async def generate_quote(
     - format_preference: Optional title format preference
     - image: Whether to generate an image (default: false)
     - image_style: Image style - 'paper', 'modern', 'minimal' (default: 'paper')
+    - video: Whether to generate a video (requires image=true, default: false)
+    - video_title: Custom video title (defaults to 'Daily Vibe')
     
     Returns:
     - A complete AI-generated quote with title, content, theme, audience, and timestamp
     - Image filename and URL (if image generation requested and successful)
+    - Video filename and URL (if video generation requested and successful)
     
     Example:
-    Input: {"theme": "relationships", "target_audience": "empaths", "image": true}
-    Output: {"title": "Maturity is when", "content": "you stop asking people why they don't call...", "image_url": "/images/quote_123.jpeg"}
+    Input: {"theme": "relationships", "target_audience": "empaths", "image": true, "video": true}
+    Output: {"title": "Maturity is when", "content": "...", "image_url": "...", "video_url": "..."}
     """
-    if request.image:
-        # Generate quote with image
-        quote, filename, blob_url, error = gen.generate_quote_with_image(
+    if request.video and not request.image:
+        # Video requires image, so enable image generation
+        request.image = True
+    
+    if request.video and request.image:
+        # Generate quote with image and video
+        (quote, image_filename, image_blob_url, 
+         video_filename, video_blob_url, error) = gen.generate_quote_with_video(
             theme=request.theme,
             target_audience=request.target_audience,
             format_preference=request.format_preference,
             image_style=request.image_style
         )
-        
-        # Use blob URL directly
-        image_url = blob_url if blob_url else None
         
         return QuoteResponse(
             title=quote.title,
@@ -79,8 +85,30 @@ async def generate_quote(
             theme=quote.theme,
             target_audience=quote.target_audience,
             created_at=quote.created_at,
-            image_url=image_url,
-            image_filename=filename
+            image_url=image_blob_url,
+            image_filename=image_filename,
+            video_url=video_blob_url,
+            video_filename=video_filename
+        )
+    elif request.image:
+        # Generate quote with image only
+        quote, filename, blob_url, error = gen.generate_quote_with_image(
+            theme=request.theme,
+            target_audience=request.target_audience,
+            format_preference=request.format_preference,
+            image_style=request.image_style
+        )
+        
+        return QuoteResponse(
+            title=quote.title,
+            content=quote.content,
+            theme=quote.theme,
+            target_audience=quote.target_audience,
+            created_at=quote.created_at,
+            image_url=blob_url,
+            image_filename=filename,
+            video_url=None,
+            video_filename=None
         )
     else:
         # Just generate quote without image
@@ -97,7 +125,9 @@ async def generate_quote(
             target_audience=quote.target_audience,
             created_at=quote.created_at,
             image_url=None,
-            image_filename=None
+            image_filename=None,
+            video_url=None,
+            video_filename=None
         )
 
 
@@ -110,18 +140,27 @@ async def root():
     return {
         "name": "AI-Powered Gen Z Quote Generator API",
         "version": "1.0.0",
-        "description": "Viral motivational quote generator with AI, MCP support, and Azure Blob Storage",
+        "description": "Viral motivational quote generator with AI, MCP support, Azure Blob Storage, and video generation",
         "ai_powered": True,
         "model": "gpt-4.1-mini",
         "endpoints": {
-            "generate": "POST /generate - Generate AI quote with optional image",
+            "generate": "POST /generate - Generate AI quote with optional image and video",
             "mcp": "GET /mcp - MCP endpoint for AI agents"
         },
         "themes": ["relationships", "self-worth", "money", "boundaries", "growth", "mixed"],
         "audiences": ["gen-z", "millennials", "empaths", "introverts", "overthinkers"],
+        "features": {
+            "text_generation": "AI-powered viral quotes",
+            "image_generation": "Azure OpenAI DALL-E motivational images",
+            "video_generation": "MoviePy social media videos with audio"
+        },
         "image_storage": "Azure Blob Storage",
+        "video_storage": "Azure Blob Storage",
         "blob_container": "891457b8-459e-47dd-9d36-49b8b8227668-azureml",
-        "blob_folder": "image-gen",
+        "blob_folders": {
+            "images": "image-gen",
+            "videos": "video-gen"
+        },
         "mcp_compatible": True,
         "storage": "stateless - no database"
     }
@@ -158,7 +197,7 @@ def main():
 📚 Docs: http://{args.host}:{args.port}/docs
 
 🛠️  MCP Tools Available:
-✅ generate_viral_quote - Generate AI-powered viral quotes with optional images
+✅ generate_viral_quote - Generate AI-powered viral quotes with optional images and videos
 ✅ get_server_info - Server information
 
 🔧 For Claude Desktop, add to config:
@@ -174,10 +213,12 @@ def main():
 🎯 Example Usage:
 curl -X POST "http://{args.host}:{args.port}/generate" \\
      -H "Content-Type: application/json" \\
-     -d '{{"theme": "relationships", "target_audience": "empaths", "image": true}}'
+     -d '{{"theme": "relationships", "target_audience": "empaths", "image": true, "video": true}}'
 
 💾 Architecture: Modular, stateless, no database
 🧠 AI: LangChain + OpenAI GPT-4.1-mini
+🎨 Images: Azure OpenAI DALL-E + Azure Blob Storage
+🎬 Videos: MoviePy + Azure Blob Storage with AI-generated titles
     """)
     
     # Run server

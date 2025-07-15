@@ -18,6 +18,7 @@ from config import (
     TITLE_PATTERNS, CONTENT_THEMES, QUOTE_GENERATOR_PROMPT
 )
 from image_generator import QuoteImageGenerator
+from video_generator import QuoteVideoGenerator
 
 
 class ViralQuoteGenerator:
@@ -31,6 +32,7 @@ class ViralQuoteGenerator:
             temperature=TEMPERATURE
         )
         self.image_generator = QuoteImageGenerator()
+        self.video_generator = QuoteVideoGenerator()
         
     def _generate_ai_quote(self, theme: str = "mixed", target_audience: str = "gen-z", 
                           format_preference: Optional[str] = None) -> dict:
@@ -165,3 +167,23 @@ Requirements:
         )
         
         return quote, filename, blob_url, error
+    
+    def generate_quote_with_video(self, theme: str = "mixed", target_audience: str = "gen-z", 
+                                 format_preference: Optional[str] = None, 
+                                 image_style: str = "paper") -> tuple:
+        """Generate a viral quote with image and video"""
+        # First generate quote with image
+        quote, image_filename, image_blob_url, image_error = self.generate_quote_with_image(
+            theme, target_audience, format_preference, image_style
+        )
+        
+        # If image generation failed, return with no video
+        if image_error or not image_blob_url:
+            return quote, image_filename, image_blob_url, None, None, image_error
+        
+        # Generate video using the image and AI-generated quote title
+        video_filename, video_blob_url, video_error = self.video_generator.generate_quote_video_safe(
+            image_blob_url, quote.title  # Use the AI-generated title from the quote
+        )
+        
+        return quote, image_filename, image_blob_url, video_filename, video_blob_url, video_error

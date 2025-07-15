@@ -9,5 +9,6 @@ dependencies = [
     "dotenv>=0.9.9",
     "fastapi>=0.116.1",
     "fastapi-mcp>=0.3.7",
+    "moviepy>=2.2.1",
     "pillow>=11.3.0",
 ]

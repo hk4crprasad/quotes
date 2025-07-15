@@ -28,7 +28,7 @@ AZURE_BLOB_FOLDER = os.getenv("AZURE_BLOB_FOLDER", "image-gen")
 AZURE_VIDEO_FOLDER = os.getenv("AZURE_VIDEO_FOLDER", "video-gen")
 
 # Video Generation Configuration
-DEFAULT_AUDIO_FILE = os.getenv("DEFAULT_AUDIO_FILE", "/home/tecosys/quotes/new.mp3")
+DEFAULT_AUDIO_FILE = os.getenv("DEFAULT_AUDIO_FILE", "new.mp3")
 VIDEO_SIZE = (1080, 1920)  # Portrait mode for social media
 VIDEO_TITLE = "Daily Vibe"
 FADE_IN_DELAY = 9  # seconds

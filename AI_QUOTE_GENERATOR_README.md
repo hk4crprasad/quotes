@@ -84,7 +84,7 @@ The system uses **LangChain** with **OpenAI GPT-4.1-mini** via Tecosys LiteLLM:
 ```python
 llm = ChatOpenAI(
     openai_api_base="https://litellm.tecosys.ai/",
-    openai_api_key="sk-LLPrAbLPEaAJIduZjOyRzw",
+    openai_api_key="key",
     model="gpt-4.1-mini",
     temperature=0.8  # High creativity for unique quotes
 )

@@ -1,0 +1,112 @@
+<svg width="400" height="120" viewBox="0 0 400 120" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Gradient for the background -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Gradient for the quote bubble -->
+    <linearGradient id="bubbleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffecd2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#fcb69f;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Glow effect -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="400" height="120" rx="15" fill="url(#bgGradient)"/>
+  
+  <!-- AI Brain Icon -->
+  <g transform="translate(20, 25)">
+    <!-- Brain outline -->
+    <path d="M15 10 C20 5, 30 5, 35 10 C40 8, 45 12, 45 18 C48 20, 48 25, 45 27 C45 35, 40 40, 35 42 C30 45, 20 45, 15 42 C10 40, 5 35, 5 27 C2 25, 2 20, 5 18 C5 12, 10 8, 15 10 Z" 
+          fill="#ffffff" opacity="0.9" filter="url(#glow)"/>
+    
+    <!-- Neural network lines -->
+    <g stroke="#667eea" stroke-width="1.5" opacity="0.7">
+      <line x1="15" y1="18" x2="25" y2="25"/>
+      <line x1="25" y1="25" x2="35" y2="18"/>
+      <line x1="20" y1="30" x2="30" y2="22"/>
+      <line x1="15" y1="35" x2="25" y2="30"/>
+      <line x1="25" y1="30" x2="35" y2="35"/>
+    </g>
+    
+    <!-- Neural nodes -->
+    <g fill="#667eea">
+      <circle cx="15" cy="18" r="2"/>
+      <circle cx="25" cy="25" r="2"/>
+      <circle cx="35" cy="18" r="2"/>
+      <circle cx="20" cy="30" r="2"/>
+      <circle cx="30" cy="22" r="2"/>
+      <circle cx="15" cy="35" r="2"/>
+      <circle cx="25" cy="30" r="2"/>
+      <circle cx="35" cy="35" r="2"/>
+    </g>
+  </g>
+  
+  <!-- Quote Bubble -->
+  <g transform="translate(80, 15)">
+    <path d="M0 15 Q0 0, 15 0 L85 0 Q100 0, 100 15 L100 35 Q100 50, 85 50 L20 50 L10 60 L15 50 Q0 50, 0 35 Z" 
+          fill="url(#bubbleGradient)" opacity="0.9"/>
+    
+    <!-- Quote marks -->
+    <text x="15" y="25" font-family="Georgia, serif" font-size="20" fill="#764ba2" opacity="0.6">"</text>
+    <text x="80" y="35" font-family="Georgia, serif" font-size="20" fill="#764ba2" opacity="0.6">"</text>
+    
+    <!-- Sample quote text -->
+    <text x="30" y="30" font-family="Arial, sans-serif" font-size="12" fill="#5a4b8c" font-weight="bold">viral quote</text>
+  </g>
+  
+  <!-- Main Title -->
+  <text x="200" y="35" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white">
+    AI Quote Generator
+  </text>
+  
+  <!-- Subtitle -->
+  <text x="200" y="55" font-family="Arial, sans-serif" font-size="14" fill="white" opacity="0.9">
+    Viral Gen Z Content Creator
+  </text>
+  
+  <!-- Tech badges -->
+  <g transform="translate(200, 65)">
+    <!-- AI Badge -->
+    <rect x="0" y="0" width="35" height="18" rx="9" fill="rgba(255,255,255,0.2)"/>
+    <text x="17.5" y="12" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle">AI</text>
+    
+    <!-- API Badge -->
+    <rect x="40" y="0" width="35" height="18" rx="9" fill="rgba(255,255,255,0.2)"/>
+    <text x="57.5" y="12" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle">API</text>
+    
+    <!-- Social Badge -->
+    <rect x="80" y="0" width="50" height="18" rx="9" fill="rgba(255,255,255,0.2)"/>
+    <text x="105" y="12" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle">Social</text>
+  </g>
+  
+  <!-- Decorative elements -->
+  <g opacity="0.3">
+    <!-- Sparkles -->
+    <g fill="white">
+      <path d="M350 25 L352 30 L357 32 L352 34 L350 39 L348 34 L343 32 L348 30 Z"/>
+      <path d="M370 45 L371 48 L374 49 L371 50 L370 53 L369 50 L366 49 L369 48 Z"/>
+      <path d="M320 70 L321 72 L323 73 L321 74 L320 76 L319 74 L317 73 L319 72 Z"/>
+    </g>
+    
+    <!-- Circuit pattern -->
+    <g stroke="white" stroke-width="0.5" fill="none">
+      <path d="M300 90 L310 90 L310 100"/>
+      <path d="M315 95 L325 95"/>
+      <circle cx="310" cy="90" r="1" fill="white"/>
+      <circle cx="310" cy="100" r="1" fill="white"/>
+      <circle cx="325" cy="95" r="1" fill="white"/>
+    </g>
+  </g>
+</svg>

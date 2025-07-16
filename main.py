@@ -74,7 +74,7 @@ async def generate_quote(
     if request.video and request.image:
         # Generate quote with image and video
         (quote, image_filename, image_blob_url, 
-         video_filename, video_blob_url, error) = gen.generate_quote_with_video(
+         video_filename, video_blob_url, error) = await gen.generate_quote_with_video(
             theme=request.theme,
             target_audience=request.target_audience,
             format_preference=request.format_preference,

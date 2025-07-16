@@ -44,7 +44,10 @@ BANNER_HEIGHT = 160
 BANNER_Y_POSITION = 300
 TITLE_FONT_SIZE = 45  # Reduced from 70 to fit better in banner
 TITLE_COLOR = 'black'
-
+MARGIN = 40
+LINE_SPACING = 10
+WIDTH = 1024
+HEIGHT = 250
 # Caption Generation Configuration
 CAPTION_TEMPLATES = [
     "Follow to get such interesting content 🔥",

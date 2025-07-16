@@ -14,6 +14,8 @@ from moviepy import AudioFileClip, ImageClip, TextClip, CompositeVideoClip, Colo
 from moviepy.video.fx.FadeIn import FadeIn
 from azure.storage.blob import BlobServiceClient
 import requests
+from PIL import Image, ImageDraw, ImageFont
+import textwrap
 
 from config import (
     AZURE_STORAGE_CONNECTION_STRING, AZURE_CONTAINER_NAME, AZURE_VIDEO_FOLDER,
@@ -57,6 +59,110 @@ class QuoteVideoGenerator:
         except Exception as e:
             raise Exception(f"Failed to download image from URL: {str(e)}")
     
+    def _load_font(self, size: int):
+        """Load font with fallback to default"""
+        font_paths = [
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVu-Sans-Bold.ttf"
+        ]
+        
+        for font_path in font_paths:
+            if os.path.exists(font_path):
+                try:
+                    return ImageFont.truetype(font_path, size)
+                except:
+                    continue
+        
+        # Fallback to default font
+        return ImageFont.load_default()
+    
+    def _wrap_text(self, text: str, font, draw, max_width: int, margin: int = 40):
+        """Wrap text to fit within max_width"""
+        words = text.split()
+        lines = []
+        line = ""
+        
+        for word in words:
+            test_line = f"{line} {word}".strip()
+            bbox = draw.textbbox((0, 0), test_line, font=font)
+            text_width = bbox[2] - bbox[0]
+            
+            if text_width <= max_width - 2 * margin:
+                line = test_line
+            else:
+                if line:
+                    lines.append(line)
+                line = word
+        
+        if line:
+            lines.append(line)
+        
+        return lines
+    
+    def _get_best_font(self, text: str, draw, max_width: int, max_height: int, margin: int = 40, line_spacing: int = 10):
+        """Find the best font size that fits the text within dimensions"""
+        for size in range(100, 10, -1):
+            font = self._load_font(size)
+            lines = self._wrap_text(text, font, draw, max_width, margin)
+            
+            # Calculate total height
+            line_heights = [draw.textbbox((0, 0), line, font=font)[3] - draw.textbbox((0, 0), line, font=font)[1] for line in lines]
+            total_height = sum(line_heights) + (len(lines) - 1) * line_spacing
+            
+            if total_height <= max_height - 2 * margin:
+                return font, lines
+        
+        # Fallback
+        return self._load_font(14), [text]
+    
+    def _create_title_banner(self, text: str, width: int = None, height: int = None) -> str:
+        """
+        Create a title banner image using PIL and save to temporary file
+        
+        Args:
+            text: The title text to render
+            width: Banner width (default: video width)
+            height: Banner height (default: from config)
+            
+        Returns:
+            Path to temporary banner image file
+        """
+        # Use video dimensions if not specified
+        banner_width = width or self.video_size[0]
+        banner_height = height or BANNER_HEIGHT
+        
+        # Banner settings
+        bg_color = BANNER_COLOR
+        text_color = TITLE_COLOR
+        margin = 40
+        line_spacing = 10
+        
+        # Create image
+        image = Image.new("RGB", (banner_width, banner_height), bg_color)
+        draw = ImageDraw.Draw(image)
+        
+        # Get best font and wrapped text
+        font, wrapped_lines = self._get_best_font(text, draw, banner_width, banner_height, margin, line_spacing)
+        
+        # Calculate total text height for vertical centering
+        line_heights = [draw.textbbox((0, 0), line, font=font)[3] - draw.textbbox((0, 0), line, font=font)[1] for line in wrapped_lines]
+        total_text_height = sum(line_heights) + (len(wrapped_lines) - 1) * line_spacing
+        y = (banner_height - total_text_height) // 2
+        
+        # Draw each line centered horizontally
+        for line in wrapped_lines:
+            bbox = draw.textbbox((0, 0), line, font=font)
+            text_width = bbox[2] - bbox[0]
+            x = (banner_width - text_width) // 2
+            draw.text((x, y), line, fill=text_color, font=font)
+            y += line_heights[wrapped_lines.index(line)] + line_spacing
+        
+        # Save to temporary file
+        temp_banner_path = tempfile.NamedTemporaryFile(delete=False, suffix='.png').name
+        image.save(temp_banner_path)
+        
+        return temp_banner_path
+    
     def _upload_video_to_blob(self, video_path: str, filename: str) -> str:
         """Upload video file to Azure Blob Storage"""
         try:
@@ -89,6 +195,7 @@ class QuoteVideoGenerator:
         """
         temp_image_path = None
         temp_video_path = None
+        temp_banner_path = None
         audio_clip = None
         final_video = None
         
@@ -114,63 +221,22 @@ class QuoteVideoGenerator:
                 color=BACKGROUND_COLOR
             ).with_duration(video_duration)
             
-            # Use font file path directly for better compatibility
-            font_main = "/usr/share/fonts/truetype/dejavu/DejaVu-Sans-Bold.ttf"
-            if not os.path.exists(font_main):
-                # Fallback to standard DejaVu Sans
-                font_main = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-                if not os.path.exists(font_main):
-                    # Final fallback - use default font
-                    font_main = None
+            print("📝 Creating title banner with PIL...")
             
-            print(f"📝 Using font: {font_main}")
-            print("📝 Creating text clips...")
-            
-            # Banner just above the quote
-            banner_y = BANNER_Y_POSITION
-            banner_height = BANNER_HEIGHT
-            
-            # White banner background
-            banner_clip = ColorClip(
-                size=(self.video_size[0], banner_height), 
-                color=BANNER_COLOR
-            ).with_duration(video_duration).with_position(("center", banner_y))
-            
-            # Title text centered inside banner
+            # Create title banner using PIL
             title_text = quote_title if quote_title else self.title_text
+            temp_banner_path = self._create_title_banner(title_text)
+            print(f"📝 Title banner created: {temp_banner_path}")
             
-            # Dynamic font sizing based on text length
-            if len(title_text) > 15:
-                dynamic_font_size = 35  # Smaller for longer titles
-                print(f"📝 Long title ({len(title_text)} chars), using font size: {dynamic_font_size}")
-            elif len(title_text) > 10:
-                dynamic_font_size = 40  # Medium for medium titles
-                print(f"📝 Medium title ({len(title_text)} chars), using font size: {dynamic_font_size}")
-            else:
-                dynamic_font_size = TITLE_FONT_SIZE  # Default for short titles
-                print(f"📝 Short title ({len(title_text)} chars), using font size: {dynamic_font_size}")
+            # Banner positioned above the quote
+            banner_y = BANNER_Y_POSITION
             
-            print(f"📝 Title text: '{title_text}'")
-            
-            try:
-                title_clip = TextClip(
-                    text=title_text,
-                    font=font_main,
-                    method='caption',
-                    size=(self.video_size[0] - 200, banner_height - 40),  # More padding and height constraint
-                    font_size=dynamic_font_size,
-                    color=TITLE_COLOR
-                ).with_duration(video_duration).with_position(("center", banner_y + 20))  # Better vertical centering
-            except Exception as font_error:
-                print(f"⚠️ Font error, using default font: {font_error}")
-                # Fallback without specifying font
-                title_clip = TextClip(
-                    text=title_text,
-                    method='caption',
-                    size=(self.video_size[0] - 200, banner_height - 40),  # More padding and height constraint
-                    font_size=dynamic_font_size,
-                    color=TITLE_COLOR
-                ).with_duration(video_duration).with_position(("center", banner_y + 20))  # Better vertical centering
+            # Create banner clip from PIL-generated image
+            banner_clip = (
+                ImageClip(temp_banner_path)
+                .with_duration(video_duration)
+                .with_position(("center", banner_y))
+            )
             
             # Quote image fades in after delay
             print("🖼️ Creating quote image clip...")
@@ -185,7 +251,7 @@ class QuoteVideoGenerator:
             
             # Final composition
             print("🎬 Compositing video...")
-            layers = [background_clip, banner_clip, title_clip, quote_clip]
+            layers = [background_clip, banner_clip, quote_clip]
             final_video = CompositeVideoClip(layers).with_audio(audio_clip)
             
             # Generate unique filename
@@ -220,6 +286,8 @@ class QuoteVideoGenerator:
             # Clean up temporary files and resources
             if temp_image_path and os.path.exists(temp_image_path):
                 os.unlink(temp_image_path)
+            if temp_banner_path and os.path.exists(temp_banner_path):
+                os.unlink(temp_banner_path)
             if temp_video_path and os.path.exists(temp_video_path):
                 os.unlink(temp_video_path)
             if audio_clip:
